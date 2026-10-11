@@ -400,6 +400,15 @@ function setupAssessmentForm() {
       );
       return;
     }
+        // Open the booking tab NOW, while we still have the user's click
+    // permission. We point it at the booking page after the submit succeeds.
+    let bookingWin = null;
+    if (CALENDLY_URL) {
+      bookingWin = window.open("about:blank", "_blank");
+      if (bookingWin) bookingWin.opener = null;
+    }
+
+    isSubmitting = true;
 
     isSubmitting = true;
     setLoading(true);
@@ -442,8 +451,23 @@ function setupAssessmentForm() {
         fbq("track", "Lead");
       }
       
-      if (CALENDLY_URL) {
-        window.open(CALENDLY_URL, "_blank", "noopener");
+            if (CALENDLY_URL) {
+        if (bookingWin) {
+          bookingWin.location.href = CALENDLY_URL;
+        } else {
+          // Popup was blocked: show a button the visitor can click instead.
+          const panel = document.getElementById("form-success");
+          if (panel && !document.getElementById("form-success-booking")) {
+            const a = document.createElement("a");
+            a.id = "form-success-booking";
+            a.className = "btn btn-primary";
+            a.href = CALENDLY_URL;
+            a.target = "_blank";
+            a.rel = "noopener";
+            a.textContent = "Book Your Call";
+            panel.appendChild(a);
+          }
+        }
       }
 
       form.hidden = true;
@@ -462,6 +486,7 @@ function setupAssessmentForm() {
         );
       }
     } catch (err) {
+      if (bookingWin) bookingWin.close();
       console.error("[assessment-form] submission error:", err);
       setStatus(
         `Something went wrong sending this. Please email us directly at ${FALLBACK_EMAIL} so we don't miss your request.`,
